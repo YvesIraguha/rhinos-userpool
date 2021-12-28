@@ -1,0 +1,84 @@
+service: rhinos-userpool
+
+frameworkVersion: "2 || 3"
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  profile: yves-sandbox
+
+resources:
+  Resources:
+    RhinosUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: rhinos-dev
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: False
+        AutoVerifiedAttributes:
+          - email
+        UsernameAttributes:
+          - email
+        UsernameConfiguration:
+          CaseSensitive: False
+        Schema:
+          - AttributeDataType: "String"
+            DeveloperOnlyAttribute: false
+            Mutable: True
+            Name: "email"
+            Required: True
+          - AttributeDataType: "String"
+            DeveloperOnlyAttribute: false
+            Mutable: true
+            Name: "preferred_username"
+            Required: true
+          - AttributeDataType: "String"
+            DeveloperOnlyAttribute: false
+            Mutable: true
+            Name: "phone_number"
+            Required: true
+    CognitoUserPoolRhinosClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        UserPoolId:
+          Ref: RhinosUserPool
+        AllowedOAuthFlows: ["implicit"]
+        AllowedOAuthFlowsUserPoolClient: true
+        ExplicitAuthFlows:
+          [
+            "ALLOW_USER_PASSWORD_AUTH",
+            "ALLOW_USER_SRP_AUTH",
+            "ALLOW_CUSTOM_AUTH",
+            "ALLOW_REFRESH_TOKEN_AUTH",
+          ]
+        AllowedOAuthScopes:
+          [
+            "aws.cognito.signin.user.admin",
+            "email",
+            "openid",
+            "phone",
+            "profile",
+          ]
+        CallbackURLs:
+          ["https://localhost:3000/callback", "https://localhost:3000"]
+        LogoutURLs: ["https://localhost:3000"]
+        RefreshTokenValidity: 30
+        SupportedIdentityProviders: ["COGNITO"]
+
+  Outputs:
+    userPoolId:
+      Value:
+        Ref: RhinosUserPool
+    userPoolProviderName:
+      Value:
+        Fn::GetAtt: [RhinosUserPool, ProviderName]
+    userPoolProviderURL:
+      Value:
+        Fn::GetAtt: [RhinosUserPool, ProviderURL]
+    userPoolArn:
+      Value:
+        Fn::GetAtt: [RhinosUserPool, Arn]
+    userPoolClientId:
+      Value:
+        Ref: CognitoUserPoolRhinosClient
